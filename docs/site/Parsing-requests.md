@@ -179,6 +179,31 @@ in/by the `@requestBody` decorator. Please refer to the documentation on
 [@requestBody decorator](Decorators.md#requestbody-decorator) to get a
 comprehensive idea of defining custom validation rules for your models.
 
+We support `json` and `urlencoded` content types. The client should set
+`Content-Type` http header to `application/json` or
+`application/x-www-form-urlencoded`. Its value is matched against the list of
+media types defined in the `requestBody.content` object of the OpenAPI operation
+spec. If no matching media types is found or the type is not supported yet, an
+UnsupportedMediaTypeError (http statusCode 415) will be reported.
+
+Please note that `urlencoded` media type does not support data typing. For
+example, `key=3` is parsed as `{key: '3'}`. The raw result is then coerced by
+AJV based on the matching content schema. See the rules at
+https://github.com/epoberezkin/ajv/blob/master/COERCION.md.
+
+The request body parser options (such as `limit`) can now be configured by
+binding the value to `RestBindings.REQUEST_BODY_PARSER_OPTIONS`
+('rest.requestBodyParserOptions'). For example,
+
+```ts
+server
+  .bind(RestBindings.REQUEST_BODY_PARSER_OPTIONS)
+  .to({limit: 4 * 1024 * 1024}); // Set limit to 4MB
+```
+
+By default, the `limit` is `1MB`. Any request with a body length exceeding the
+limit will be rejected with http status code 413 (request entity too large).
+
 A few tips worth mentioning:
 
 - If a model property's type refers to another model, make sure it is also
