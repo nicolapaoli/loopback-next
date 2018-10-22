@@ -44,6 +44,7 @@
     "path-to-regexp": "^2.2.0",
     "qs": "^6.5.2",
     "strong-error-handler": "^3.2.0",
+    "type-is": "^1.6.16",
     "validator": "^10.4.0"
   },
   "devDependencies": {
@@ -54,7 +55,8 @@
     "@types/debug": "0.0.30",
     "@types/js-yaml": "^3.11.1",
     "@types/lodash": "^4.14.106",
-    "@types/node": "^10.11.2"
+    "@types/node": "^10.11.2",
+    "@types/type-is": "^1.6.2"
   },
   "files": [
     "README.md",
