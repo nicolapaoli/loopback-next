@@ -11,6 +11,9 @@ import {
   FindRouteProvider,
   InvokeMethodProvider,
   RejectProvider,
+  ParseParamsProvider,
+  BodyParser,
+  Request,
 } from '../..';
 import {ControllerSpec, get} from '@loopback/openapi-v3';
 import {Context} from '@loopback/context';
@@ -20,7 +23,8 @@ import {ParameterObject, RequestBodyObject} from '@loopback/openapi-v3-types';
 import {anOpenApiSpec, anOperationSpec} from '@loopback/openapi-spec-builder';
 import {createUnexpectedHttpErrorLogger} from '../helpers';
 import * as express from 'express';
-import {ParseParamsProvider} from '../../src';
+import {is} from 'type-is';
+import {REQUEST_BODY_PARSER_TAG} from '../../src';
 
 const SequenceActions = RestBindings.SequenceActions;
 
@@ -272,9 +276,7 @@ describe('HttpHandler', () => {
         .send('<key>value</key>')
         .expect(415, {
           error: {
-            message:
-              'Content-type application/xml does not match ' +
-              '[application/json,application/x-www-form-urlencoded].',
+            message: 'Content-type application/xml is not supported.',
             name: 'UnsupportedMediaTypeError',
             statusCode: 415,
           },
@@ -328,6 +330,37 @@ describe('HttpHandler', () => {
         .expect(200, body);
     });
 
+    it('allows request body parser extensions', () => {
+      const body = '<key>value</key>';
+
+      /**
+       * A mock-up xml parser
+       */
+      class XmlBodyParser implements BodyParser {
+        name: string = 'xml';
+        supports(mediaType: string) {
+          return !!is(mediaType, 'xml');
+        }
+
+        async parse(request: Request) {
+          return {value: {key: 'value'}};
+        }
+      }
+
+      // Register a request body parser for xml
+      rootContext
+        .bind('rest.requestBodyParsers.xml')
+        .toClass(XmlBodyParser)
+        // Make sure the tag is used
+        .tag(REQUEST_BODY_PARSER_TAG);
+
+      return client
+        .post('/show-body')
+        .set('content-type', 'application/xml')
+        .send(body)
+        .expect(200, {key: 'value'});
+    });
+
     function ignorePipeError(err: HttpErrors.HttpError) {
       // The server side can close the socket before the client
       // side can send out all data. For example, `response.end()`
@@ -335,18 +368,6 @@ describe('HttpHandler', () => {
       // to size limit
       if (err && err.code !== 'EPIPE') throw err;
     }
-    
-    it('allows customization of request body parser options', () => {
-      const body = {key: givenLargeRequest()};
-      rootContext
-        .bind(RestBindings.REQUEST_BODY_PARSER_OPTIONS)
-        .to({limit: 4 * 1024 * 1024}); // Set limit to 4MB
-      return client
-        .post('/show-body')
-        .set('content-type', 'application/json')
-        .send(body)
-        .expect(200, body);
-    });
 
     function givenLargeRequest() {
       const data = Buffer.alloc(2 * 1024 * 1024, 'A', 'utf-8');
@@ -366,6 +387,9 @@ describe('HttpHandler', () => {
                 schema: {type: 'object'},
               },
               'application/x-www-form-urlencoded': {
+                schema: {type: 'object'},
+              },
+              'application/xml': {
                 schema: {type: 'object'},
               },
             },
