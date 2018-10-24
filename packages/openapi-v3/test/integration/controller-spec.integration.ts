@@ -194,7 +194,7 @@ describe('controller spec', () => {
     });
   });
 
-  it('generates schema from `x-ts-type`', () => {
+  it('generates schema from response with `x-ts-type`', () => {
     class MyController {
       @get('/', {
         responses: {
@@ -219,7 +219,48 @@ describe('controller spec', () => {
     });
   });
 
-  it('generates schema for an array from `x-ts-type`', () => {
+  @model()
+  class MyModel {
+    @property()
+    name: string;
+  }
+
+  it('generates schema from response with `x-ts-type` for models', () => {
+    class MyController {
+      @get('/', {
+        responses: {
+          '200': {
+            description: 'hello world',
+            content: {'application/json': {'x-ts-type': MyModel}},
+          },
+        },
+      })
+      hello() {
+        return 'hello world';
+      }
+    }
+
+    const spec = getControllerSpec(MyController);
+    expect(spec.paths['/'].get).to.have.property('responses');
+    expect(spec.paths['/'].get.responses).to.eql({
+      '200': {
+        description: 'hello world',
+        content: {
+          'application/json': {schema: {$ref: '#/components/schemas/MyModel'}},
+        },
+      },
+    });
+    expect(spec.components!.schemas!.MyModel).to.eql({
+      properties: {
+        name: {
+          type: 'string',
+        },
+      },
+      title: 'MyModel',
+    });
+  });
+
+  it('generates schema for an array from response with `x-ts-type`', () => {
     class MyController {
       @get('/', {
         responses: {
@@ -249,6 +290,80 @@ describe('controller spec', () => {
           },
         },
       },
+    });
+  });
+
+  it('generates schema for an array from response with `x-ts-type` for models', () => {
+    class MyController {
+      @get('/', {
+        responses: {
+          '200': {
+            description: 'hello world array',
+            content: {
+              'application/json': {
+                schema: {type: 'array', items: {'x-ts-type': MyModel}},
+              },
+            },
+          },
+        },
+      })
+      hello() {
+        return ['hello', 'world'];
+      }
+    }
+
+    const spec = getControllerSpec(MyController);
+    expect(spec.paths['/'].get).to.have.property('responses');
+    expect(spec.paths['/'].get.responses).to.eql({
+      '200': {
+        description: 'hello world array',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'array',
+              items: {$ref: '#/components/schemas/MyModel'},
+            },
+          },
+        },
+      },
+    });
+    expect(spec.components!.schemas!.MyModel).to.eql({
+      properties: {
+        name: {
+          type: 'string',
+        },
+      },
+      title: 'MyModel',
+    });
+  });
+
+  it('generates schema from request with `x-ts-type` for models', () => {
+    class MyController {
+      @post('/')
+      hello(
+        @requestBody({
+          content: {'application/json': {'x-ts-type': MyModel}},
+        })
+        body: MyModel,
+      ) {
+        return `hello ${body.name}`;
+      }
+    }
+
+    const spec = getControllerSpec(MyController);
+    expect(spec.paths['/'].post).to.have.property('requestBody');
+    expect(spec.paths['/'].post.requestBody).to.eql({
+      content: {
+        'application/json': {schema: {$ref: '#/components/schemas/MyModel'}},
+      },
+    });
+    expect(spec.components!.schemas!.MyModel).to.eql({
+      properties: {
+        name: {
+          type: 'string',
+        },
+      },
+      title: 'MyModel',
     });
   });
 });
