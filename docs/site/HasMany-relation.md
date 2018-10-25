@@ -114,7 +114,7 @@ repository, the following are required:
 The following code snippet shows how it would look like:
 
 {% include code-caption.html
-content="/src/repositories/customer.repository.ts.ts" %}
+content="/src/repositories/customer.repository.ts" %}
 
 ```ts
 import {Order, Customer} from '../models';
