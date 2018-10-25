@@ -103,7 +103,7 @@ starting your `Application`:
 import {RestApplication} from '@loopback/rest';
 
 const app = new RestApplication();
-app.sequence(MySequencce);
+app.sequence(MySequence);
 
 app.start();
 ```
